@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <title>College Momentum</title>
+  <style>
+    :root { --bg:#f8fafc; --fg:#0f172a; --muted:#e2e8f0; --primary:#0f172a; --accent:#3b82f6; --green:#22c55e; --soil:#8b5e3c; }
+    * { box-sizing: border-box; }
+    html,body { height:100%; margin:0; }
+    body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background: linear-gradient(180deg,#fff,#f1f5f9); color:var(--fg); }
+    header { display:flex; align-items:center; justify-content:space-between; padding:16px; position:sticky; top:0; background:rgba(255,255,255,.8); backdrop-filter:blur(8px); border-bottom:1px solid var(--muted); }
+    .brand { display:flex; align-items:center; gap:8px; font-weight:600; }
+    .streak { background:#e2e8f0; border-radius:999px; padding:6px 10px; font-size:12px; }
+    main { padding:16px; max-width:900px; margin:0 auto; }
+    .tabs { display:grid; grid-template-columns:repeat(6,1fr); gap:8px; margin:8px 0 16px; }
+    .tab { border:1px solid var(--muted); border-radius:12px; padding:10px; text-align:center; cursor:pointer; background:white; }
+    .tab.active { background:var(--primary); color:white; }
+    .grid { display:grid; gap:12px; }
+    @media (min-width:820px){ .grid.two{ grid-template-columns:1.2fr .8fr; } .grid.half{ grid-template-columns:1fr 1fr; } }
+    .card { background:white; border:1px solid var(--muted); border-radius:16px; padding:14px; }
+    .title { font-weight:600; margin-bottom:8px; }
+    .muted { color:#475569; font-size:14px; }
+    .row { display:flex; gap:8px; align-items:center; }
+    .input, textarea, select { width:100%; padding:10px; border:1px solid var(--muted); border-radius:10px; font-size:14px; }
+    button { border:1px solid var(--muted); background:white; border-radius:10px; padding:8px 12px; cursor:pointer; }
+    button.primary { background:var(--accent); color:white; border-color:var(--accent); }
+    .badge { border:1px solid var(--muted); border-radius:999px; padding:4px 8px; font-size:12px; }
+    ul { list-style:none; padding:0; margin:0; }
+    .task { display:flex; align-items:center; gap:8px; border:1px solid var(--muted); border-radius:12px; padding:8px; }
+    .progress { height:8px; background:#e2e8f0; border-radius:8px; overflow:hidden; }
+    .progress > div { height:100%; background:var(--accent); width:0%; transition:width .2s; }
+    .tip { background:#f1f5f9; border-radius:12px; padding:10px; font-size:13px; color:#334155; }
+    #viz { height:260px; display:grid; place-items:center; }
+    .soil { fill: var(--soil); } .stem { stroke: var(--green); stroke-width: 6; stroke-linecap: round; fill: none; }
+    .leaf { fill: #16a34a; } .flower { fill: #f59e0b; stroke: #b45309; stroke-width: 2; }
+    .droplet { fill: #38bdf8; opacity: .9; }
+    .sand { fill: #fbbf24; opacity: .9; } .glass { fill: none; stroke: #64748b; stroke-width: 4; }
+    footer { margin-top:24px; font-size:12px; color:#64748b; display:flex; justify-content:space-between; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">🌟 College Momentum <span class="streak" id="streak">0 day streak</span></div>
+    <div class="muted" id="today"></div>
+  </header>
+  <main>
+    <div class="card">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div class="muted">Daily motivation</div>
+          <div id="quote" class="title"></div>
+          <div class="muted" id="missionLabel"></div>
+        </div>
+        <button id="editMission">Edit Why</button>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="today">Today</div>
+      <div class="tab" data-tab="planner">Planner</div>
+      <div class="tab" data-tab="habits">Habits</div>
+      <div class="tab" data-tab="focus">Focus</div>
+      <div class="tab" data-tab="notes">Notes</div>
+      <div class="tab" data-tab="privacy">Privacy</div>
+    </div>
+
+    <section id="todayView">
+      <div class="grid two">
+        <div class="card">
+          <div class="title">Inbox</div>
+          <div class="progress"><div id="progressBar"></div></div>
+          <div class="row" style="margin-top:8px;">
+            <input id="taskInput" class="input" placeholder="Add a task…"/>
+            <button id="addTask" class="primary">Add</button>
+          </div>
+          <div class="row" style="flex-wrap:wrap; gap:6px; margin:8px 0;">
+            <button class="badge template">Attend class / labs</button>
+            <button class="badge template">Review today’s notes (10–15m)</button>
+            <button class="badge template">Plan tomorrow (5m)</button>
+            <button class="badge template">Move your body (15m)</button>
+            <button class="badge template">Reach out to a classmate</button>
+          </div>
+          <ul id="taskList"></ul>
+          <div class="row" style="justify-content:space-between; margin-top:8px;">
+            <button id="clearDone">Clear completed</button>
+            <div class="muted">Tip: keep 3–5 items max.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="title">Key Priorities</div>
+          <div class="tip">Use P1/P2/P3 to mimic urgent/important. Keep P1 ≤ 3.</div>
+          <div class="row" style="margin-top:8px;">
+            <input id="p1Input" class="input" placeholder="Must do (P1)…"/>
+            <button id="p1Add">Add</button>
+          </div>
+          <ul id="p1List"></ul>
+          <div class="row">
+            <input id="p2Input" class="input" placeholder="Should do (P2)…"/>
+            <button id="p2Add">Add</button>
+          </div>
+          <ul id="p2List"></ul>
+          <div class="row">
+            <input id="p3Input" class="input" placeholder="Nice to do (P3)…"/>
+            <button id="p3Add">Add</button>
+          </div>
+          <ul id="p3List"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="plannerView" style="display:none;">
+      <div class="grid half">
+        <div class="card">
+          <div class="title">SMART-ish Goal</div>
+          <input id="goalTitle" class="input" placeholder="Goal title" />
+          <textarea id="goalWhy" class="input" placeholder="Why this matters"></textarea>
+          <div class="row">
+            <input id="goalDate" type="date" class="input" style="max-width:220px;">
+            <button id="saveGoal" class="primary">Save Goal</button>
+          </div>
+          <div class="tip">Add steps to your goal below.</div>
+          <div class="row">
+            <input id="stepInput" class="input" placeholder="Add step…"/>
+            <button id="addStep">Step</button>
+          </div>
+          <ul id="steps"></ul>
+          <div class="title" style="margin-top:10px;">Saved goals</div>
+          <ul id="goalList"></ul>
+        </div>
+
+        <div class="card">
+          <div class="title">Upcoming</div>
+          <div class="tip">Tasks with future dates appear here.</div>
+          <ul id="upcomingList"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="habitsView" style="display:none;">
+      <div class="card">
+        <div class="title">Weekly Habits</div>
+        <div class="tip">Tap a day to mark it done.</div>
+        <div id="habitTable"></div>
+      </div>
+    </section>
+
+    <section id="focusView" style="display:none;">
+      <div class="grid two">
+        <div class="card" style="text-align:center;">
+          <div class="title">Pomodoro — Visual Styles</div>
+          <div class="row" style="justify-content:center; gap:10px; margin-bottom:6px;">
+            <label class="muted">Style</label>
+            <select id="skinSelect" class="input" style="max-width:180px;">
+              <option value="plant">Plant</option>
+              <option value="hourglass">Hourglass</option>
+            </select>
+          </div>
+          <div id="viz"></div>
+          <div id="timer" style="font-size:44px;font-weight:600;margin:8px 0;">25:00</div>
+          <div class="muted" id="phase">25 min focus</div>
+          <div class="row" style="justify-content:center; gap:10px; margin-top:8px;">
+            <button id="startStop" class="primary">Start</button>
+            <button id="reset">Reset</button>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="muted">Focus on</div>
+            <select id="focusTask"></select>
+          </div>
+        </div>
+        <div class="card">
+          <div class="title">Focus Settings</div>
+          <div class="row">
+            <label class="muted" style="width:140px;">Work (minutes)</label>
+            <input id="workMins" class="input" type="number" min="10" max="90" value="25" style="max-width:120px;">
+          </div>
+          <div class="row">
+            <label class="muted" style="width:140px;">Break (minutes)</label>
+            <input id="breakMins" class="input" type="number" min="3" max="30" value="5" style="max-width:120px;">
+          </div>
+          <div class="tip">Plant grows during focus (break = watering). Hourglass drains sand during focus.</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="notesView" style="display:none;">
+      <div class="grid half">
+        <div class="card">
+          <div class="title">Daily Reflection</div>
+          <textarea id="notes" rows="10" class="input" placeholder="What did I learn today? What’s the next tiny step?"></textarea>
+        </div>
+        <div class="card">
+          <div class="title">Gratitude & Wins</div>
+          <textarea id="gratitude" rows="10" class="input" placeholder="Write 1–3 things that went well."></textarea>
+        </div>
+      </div>
+    </section>
+
+    <section id="privacyView" style="display:none;">
+      <div class="card">
+        <div class="title">Privacy & Data</div>
+        <p class="muted">Your tasks, habits, goals, and notes are saved only on your device using local storage in your browser. Nothing is sent to the internet, the college, or GitHub.</p>
+        <ul class="muted">
+          <li>• No login or tracking. Works offline after first load.</li>
+          <li>• You control your data (clear it any time via your browser settings for this site).</li>
+          <li>• If you uninstall the app or clear browser data, your entries will be removed.</li>
+        </ul>
+        <p class="muted">Keep your phone secure if you store personal information.</p>
+      </div>
+    </section>
+  </main>
+  <footer>
+    <div>College Momentum · Local-first · No sign-in required</div>
+    <div><a href="#" id="toPrivacy">Privacy</a></div>
+  </footer>
+
+  <script>
+    const $ = s => document.querySelector(s);
+    const $$ = s => Array.from(document.querySelectorAll(s));
+    const todayKey = () => new Date().toISOString().slice(0,10);
+    const read = (k, d) => JSON.parse(localStorage.getItem(k) || JSON.stringify(d));
+    const write = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+
+    const QUOTES = [
+      { q: "Small daily wins compound into big semesters.", a: "College Momentum" },
+      { q: "You don’t need more time, you need more focus.", a: "Unknown" },
+      { q: "Discipline is choosing what you want most over what you want now.", a: "Attrib." },
+      { q: "If it’s not scheduled, it’s a wish.", a: "Tom Peters" },
+      { q: "We are what we repeatedly do.", a: "Aristotle" },
+    ];
+
+    const state = {
+      mission: read("cm_mission", "I’m here to grow, serve, and graduate with pride."),
+      tasks: read("cm_tasks", []),
+      p1: read("cm_p1", []),
+      p2: read("cm_p2", []),
+      p3: read("cm_p3", []),
+      notes: read("cm_notes", ""),
+      gratitude: read("cm_gratitude", "Grateful for a fresh start."),
+      goals: read("cm_goals", []),
+      habits: read("cm_habits", [
+        { id: "h1", name: "Review notes", days: {}, targetPerWeek: 4 },
+        { id: "h2", name: "Move 15 minutes", days: {}, targetPerWeek: 4 },
+        { id: "h3", name: "Sleep 7+ hours", days: {}, targetPerWeek: 5 },
+      ]),
+      work: read("cm_work", 25),
+      brk: read("cm_break", 5),
+      skin: read("cm_skin", "plant")
+    };
+
+    $("#today").textContent = new Date().toLocaleDateString(undefined, {weekday:"short", month:"short", day:"numeric"});
+    const q = QUOTES[Math.floor(Math.random()*QUOTES.length)];
+    $("#quote").textContent = `“${q.q}” — ${q.a}`;
+    $("#missionLabel").textContent = "Mission: " + state.mission;
+    $("#editMission").onclick = () => {
+      const m = prompt("Your why / mission:", state.mission);
+      if (m !== null) { state.mission = m; write("cm_mission", m); $("#missionLabel").textContent = "Mission: " + state.mission; }
+    };
+
+    $$(".tab").forEach(t => t.onclick = () => {
+      $$(".tab").forEach(x => x.classList.remove("active"));
+      t.classList.add("active");
+      const val = t.dataset.tab;
+      ["today","planner","habits","focus","notes","privacy"].forEach(v => { $("#"+v+"View").style.display = (v===val) ? "" : "none"; });
+    });
+    $("#toPrivacy").onclick = (e) => { e.preventDefault(); $$(".tab").find(t=>t.dataset.tab==="privacy").click(); };
+
+    // Tasks
+    const renderTasks = () => {
+      const today = todayKey();
+      const list = $("#taskList"); list.innerHTML = "";
+      const tt = state.tasks.filter(t => (t.due || today) === today);
+      tt.forEach(t => {
+        const li = document.createElement("li"); li.className = "task";
+        const cb = document.createElement("input"); cb.type = "checkbox"; cb.checked = !!t.done;
+        cb.onchange = () => { t.done = cb.checked; write("cm_tasks", state.tasks); updateProgress(); };
+        const txt = document.createElement("div"); txt.style.flex = "1"; txt.textContent = t.text;
+        if (t.done) { txt.style.textDecoration = "line-through"; txt.style.color = "#6b7280"; }
+        const dateInput = document.createElement("input"); dateInput.type = "date"; dateInput.value = t.due || "";
+        dateInput.onchange = () => { t.due = dateInput.value || undefined; write("cm_tasks", state.tasks); renderTasks(); renderUpcoming(); };
+        const del = document.createElement("button"); del.textContent = "Delete"; del.onclick = () => { state.tasks = state.tasks.filter(x => x !== t); write("cm_tasks", state.tasks); renderTasks(); };
+        li.append(cb, txt, dateInput, del);
+        list.appendChild(li);
+      });
+      updateProgress(); refreshFocusTaskSelect();
+    };
+    const updateProgress = () => {
+      const today = todayKey(); const tt = state.tasks.filter(t => (t.due || today) === today);
+      const done = tt.filter(t => t.done).length; const pct = tt.length ? Math.round(100*done/tt.length) : 0;
+      $("#progressBar").style.width = pct + "%"; $("#streak").textContent = streakDays() + " day streak";
+    };
+    $("#addTask").onclick = () => {
+      const v = $("#taskInput").value.trim(); if (!v) return;
+      state.tasks.unshift({ id: Math.random().toString(36).slice(2), text: v, done:false, created:new Date().toISOString() });
+      write("cm_tasks", state.tasks); $("#taskInput").value = ""; renderTasks();
+    };
+    $$(".template").forEach(b => b.onclick = () => { $("#taskInput").value = b.textContent; $("#addTask").click(); });
+    $("#clearDone").onclick = () => { state.tasks = state.tasks.filter(t => !t.done); write("cm_tasks", state.tasks); renderTasks(); };
+
+    // P lists
+    function addTo(listKey, inputId, ulId) { const val = document.querySelector(inputId).value.trim(); if (!val) return; state[listKey].unshift(val); write("cm_"+listKey, state[listKey]); document.querySelector(inputId).value = ""; renderList(listKey, ulId); }
+    function renderList(listKey, ulId) { const ul = document.querySelector(ulId); ul.innerHTML=""; state[listKey].slice(0,6).forEach(item=>{ const li=document.createElement("li"); li.className="row muted"; const dot=document.createElement("div"); dot.style.width="8px"; dot.style.height="8px"; dot.style.borderRadius="999px"; dot.style.background="#3b82f6"; li.append(dot, document.createTextNode(" "+item)); ul.appendChild(li); }); }
+    $("#p1Add").onclick = () => addTo("p1", "#p1Input", "#p1List");
+    $("#p2Add").onclick = () => addTo("p2", "#p2Input", "#p2List");
+    $("#p3Add").onclick = () => addTo("p3", "#p3Input", "#p3List");
+
+    // Planner upcoming
+    function renderUpcoming(){ const ul=$("#upcomingList"); ul.innerHTML=""; const today=todayKey();
+      const up=state.tasks.filter(t=>(t.due||today)>today).sort((a,b)=>(a.due||"").localeCompare(b.due||""));
+      if(up.length===0){ const li=document.createElement("li"); li.className="muted"; li.textContent="Nothing scheduled yet."; ul.appendChild(li); return; }
+      up.slice(0,10).forEach(t=>{ const li=document.createElement("li"); li.className="task";
+        const info=document.createElement("div"); info.style.flex="1"; info.innerHTML=`<div style="font-weight:600">${t.text}</div><div class="muted">Due: ${t.due||"—"}</div>`;
+        const move=document.createElement("button"); move.textContent="Move to Today"; move.onclick=()=>{ t.due=today; write("cm_tasks", state.tasks); renderUpcoming(); renderTasks(); };
+        const del=document.createElement("button"); del.textContent="Delete"; del.onclick=()=>{ state.tasks=state.tasks.filter(x=>x!==t); write("cm_tasks", state.tasks); renderUpcoming(); };
+        li.append(info, move, del); ul.appendChild(li); });
+    }
+
+    // Goals
+    document.getElementById("saveGoal").onclick = () => {
+      const g={ id:Math.random().toString(36).slice(2), title:document.getElementById("goalTitle").value||"Untitled goal", why:document.getElementById("goalWhy").value||"", due:document.getElementById("goalDate").value||"", steps: read("cm_temp_steps",[]) };
+      state.goals.unshift(g); write("cm_goals", state.goals); write("cm_temp_steps", []); document.getElementById("steps").innerHTML=""; renderGoals();
+    };
+    document.getElementById("addStep").onclick = () => { const v=document.getElementById("stepInput").value.trim(); if(!v) return; const steps=read("cm_temp_steps",[]); steps.push(v); write("cm_temp_steps", steps); document.getElementById("stepInput").value=""; const li=document.createElement("li"); li.className="row muted"; li.textContent=v; document.getElementById("steps").appendChild(li); };
+    function renderGoals(){ const ul=document.getElementById("goalList"); ul.innerHTML=""; if(state.goals.length===0){ const li=document.createElement("li"); li.className="muted"; li.textContent="No goals yet."; ul.appendChild(li); return; } state.goals.forEach(g=>{ const li=document.createElement("li"); li.className="card"; li.innerHTML=`<div style="font-weight:600">${g.title}</div><div class="muted">${g.why}</div><div class="muted">Due ${g.due||"—"}</div>`; ul.appendChild(li); }); }
+
+    // Habits
+    function startOfWeek(d=new Date()){ const day=(d.getDay()+6)%7; const s=new Date(d); s.setDate(d.getDate()-day); s.setHours(0,0,0,0); return s; }
+    function weekKeys(){ const s=startOfWeek(); return Array.from({length:7},(_,i)=>{ const d=new Date(s); d.setDate(s.getDate()+i); return d.toISOString().slice(0,10); }); }
+    function renderHabits(){ const keys=weekKeys(); const wrap=document.getElementById("habitTable"); wrap.innerHTML=""; const table=document.createElement("table"); table.style.width="100%"; table.style.borderCollapse="collapse"; table.style.fontSize="14px";
+      const thead=document.createElement("thead"); const trh=document.createElement("tr"); const th0=document.createElement("th"); th0.style.textAlign="left"; th0.style.padding="8px"; th0.textContent="Habit"; trh.appendChild(th0);
+      keys.forEach(k=>{ const th=document.createElement("th"); th.style.padding="8px"; th.style.textAlign="center"; th.textContent=new Date(k).toLocaleDateString(undefined,{weekday:"short"}); trh.appendChild(th); });
+      const tht=document.createElement("th"); tht.style.textAlign="center"; tht.style.padding="8px"; tht.textContent="Target"; trh.appendChild(tht); thead.appendChild(trh); table.appendChild(thead);
+      const tbody=document.createElement("tbody");
+      state.habits.forEach(h=>{ const tr=document.createElement("tr"); tr.style.borderTop="1px solid #e2e8f0"; const td0=document.createElement("td"); td0.style.padding="8px"; td0.style.fontWeight="600"; td0.textContent=h.name; tr.appendChild(td0);
+        keys.forEach(k=>{ const td=document.createElement("td"); td.style.padding="6px"; td.style.textAlign="center"; const btn=document.createElement("button"); btn.textContent=(h.days[k]?"✓":""); btn.onclick=()=>{ h.days[k]=!h.days[k]; write("cm_habits", state.habits); renderHabits(); updateStreak(); }; td.appendChild(btn); tr.appendChild(td); });
+        const tdt=document.createElement("td"); tdt.style.textAlign="center"; tdt.style.padding="6px"; tdt.className="muted"; tdt.textContent=(h.targetPerWeek||0)+"/wk"; tr.appendChild(tdt); tbody.appendChild(tr); });
+      table.appendChild(tbody); wrap.appendChild(table); }
+
+    // Skins
+    const skinSelect = document.getElementById("skinSelect");
+    skinSelect.value = state.skin;
+    skinSelect.onchange = () => { state.skin = skinSelect.value; write("cm_skin", state.skin); updateViz(); };
+
+    function plantSVG(stage){ const soil='<rect x="0" y="180" width="260" height="40" class="soil"/>'; let parts=''; if(stage>=0){ parts+='<ellipse cx="130" cy="190" rx="8" ry="6" fill="#a16207"/>'; } if(stage>=1){ parts+='<path d="M130 178 Q130 170 130 160" class="stem"/>'; } if(stage>=2){ parts+='<path d="M130 160 Q130 140 130 120" class="stem"/>'; } if(stage>=3){ parts+='<ellipse cx="118" cy="150" rx="10" ry="6" class="leaf"/>'; parts+='<ellipse cx="142" cy="145" rx="10" ry="6" class="leaf"/>'; } if(stage>=4){ parts+='<circle cx="130" cy="105" r="10" class="flower"/>'; parts+='<circle cx="120" cy="105" r="8" class="flower"/>'; parts+='<circle cx="140" cy="105" r="8" class="flower"/>'; parts+='<circle cx="130" cy="95" r="8" class="flower"/>'; } return `<svg viewBox="0 0 260 220" width="260" height="220" aria-hidden="true"><rect x="0" y="0" width="260" height="220" fill="none"/>${soil}${parts}</svg>`; }
+    function waterSVG(){ return `<svg viewBox="0 0 260 220" width="260" height="220" aria-hidden="true"><rect x="0" y="0" width="260" height="220" fill="none"/><rect x="0" y="180" width="260" height="40" class="soil"/><path d="M200 40 q20 20 0 40 l-20 20 q-20 20 0 40" fill="none" stroke="#0ea5e9" stroke-width="6"/><circle cx="100" cy="80" r="8" class="droplet"/><circle cx="120" cy="100" r="7" class="droplet"/><circle cx="140" cy="70" r="6" class="droplet"/></svg>`; }
+
+    function hourglassSVG(pct){
+      const topH = Math.max(0, 80 * (1 - pct));
+      const bottomH = Math.min(80, 80 * pct);
+      return `<svg viewBox="0 0 260 220" width="260" height="220" aria-hidden="true">
+        <rect x="0" y="0" width="260" height="220" fill="none"/>
+        <path d="M60 20 L200 20 L160 100 L100 100 Z" class="glass"/>
+        <path d="M100 120 L160 120 L200 200 L60 200 Z" class="glass"/>
+        <rect x="100" y="${100 - topH}" width="60" height="${topH}" class="sand"/>
+        <rect x="100" y="120" width="60" height="${bottomH}" class="sand"/>
+        <circle cx="130" cy="110" r="3" class="sand"/>
+      </svg>`;
+    }
+
+    // Pomodoro
+    let running=false, breakPhase=false, secondsLeft=state.work*60;
+    function formatTime(s){ const mm=String(Math.floor(s/60)).padStart(2,"0"); const ss=String(s%60).padStart(2,"0"); return mm+":"+ss; }
+    function refreshTimerLabels(){ document.getElementById("timer").textContent = formatTime(secondsLeft); document.getElementById("phase").textContent = (breakPhase?state.brk:state.work) + (breakPhase ? " min break" : " min focus"); updateViz(); }
+    function updateViz(){
+      const viz = document.getElementById("viz"); if(!viz) return;
+      if(breakPhase){
+        viz.innerHTML = (state.skin === "plant") ? waterSVG() : hourglassSVG(1);
+        return;
+      }
+      const total = state.work * 60; const elapsed = total - secondsLeft;
+      const pct = Math.max(0, Math.min(1, elapsed / total));
+      if(state.skin === "plant"){
+        let stage = 0; if (pct >= 0.2) stage = 1; if (pct >= 0.4) stage = 2; if (pct >= 0.6) stage = 3; if (pct >= 0.85) stage = 4;
+        viz.innerHTML = plantSVG(stage);
+      } else {
+        viz.innerHTML = hourglassSVG(pct);
+      }
+    }
+
+    document.getElementById("startStop").onclick = () => { running=!running; document.getElementById("startStop").textContent = running ? "Pause" : "Start"; };
+    setInterval(()=>{ if(!running) return; if(secondsLeft>0){ secondsLeft-=1; refreshTimerLabels(); return; } breakPhase=!breakPhase; secondsLeft=(breakPhase?state.brk:state.work)*60; refreshTimerLabels(); }, 1000);
+    document.getElementById("reset").onclick = () => { running=false; document.getElementById("startStop").textContent="Start"; breakPhase=false; secondsLeft=state.work*60; refreshTimerLabels(); };
+    document.getElementById("workMins").onchange = (e) => { state.work=parseInt(e.target.value||"25",10); write("cm_work", state.work); if(!breakPhase){ secondsLeft=state.work*60; refreshTimerLabels(); } };
+    document.getElementById("breakMins").onchange = (e) => { state.brk=parseInt(e.target.value||"5",10); write("cm_break", state.brk); if(breakPhase){ secondsLeft=state.brk*60; refreshTimerLabels(); } };
+    function refreshFocusTaskSelect(){ const sel=document.getElementById("focusTask"); sel.innerHTML=""; state.tasks.filter(t=>!t.done).slice(0,20).forEach(t=>{ const opt=document.createElement("option"); opt.value=t.id; opt.textContent=t.text.slice(0,80); sel.appendChild(opt); }); }
+
+    // Notes
+    document.getElementById("notes").value = state.notes;
+    document.getElementById("notes").oninput = e => { state.notes = e.target.value; write("cm_notes", state.notes); };
+    document.getElementById("gratitude").value = state.gratitude;
+    document.getElementById("gratitude").oninput = e => { state.gratitude = e.target.value; write("cm_gratitude", state.gratitude); };
+
+    // Init
+    function streakDays(){ let s=0,i=0; while(true){ const d=new Date(); d.setDate(d.getDate()-i); const key=d.toISOString().slice(0,10); const anyDone = state.tasks.some(t => t.done && (t.due || t.created.slice(0,10)) === key) || state.habits.some(h => h.days[key]); if(anyDone){ s++; i++; } else break; if(i>365) break; } return s; }
+    function updateStreak(){ document.getElementById("streak").textContent = streakDays() + " day streak"; }
+    renderTasks(); renderList("p1","#p1List"); renderList("p2","#p2List"); renderList("p3","#p3List"); renderHabits(); renderGoals(); renderUpcoming(); refreshFocusTaskSelect(); updateStreak(); refreshTimerLabels();
+    if(state.skin){ document.getElementById("skinSelect").value = state.skin; }
+
+    if ('serviceWorker' in navigator) { window.addEventListener('load', () => { navigator.serviceWorker.register('/sw.js'); }); }
+  </script>
+</body>
+</html>
